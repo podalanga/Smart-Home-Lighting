@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Color Wheel Picker</title>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: Arial;
+      text-align: center;
+      margin: 0;
+    }
+
+    canvas {
+      margin-top: 20px;
+      touch-action: none;
+    }
+
+    #colorDisplay {
+      margin: 15px;
+      font-size: 20px;
+    }
+
+    .switches {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .switch {
+      background-color: #222;
+      border: 2px solid #444;
+      border-radius: 10px;
+      padding: 10px 15px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 16px;
+      min-width: 140px;
+    }
+
+    .switch.on {
+      background-color: #2ecc71;
+      color: #111;
+    }
+  </style>
+</head>
+<body>
+  <h1>Color Picker Wheel</h1>
+  <canvas id="wheel" width="320" height="320"></canvas>
+  <div id="colorDisplay">R: 0, G: 0, B: 0</div>
+
+  <div class="switches">
+    <div id="ledSwitch" class="switch">LED: OFF</div>
+    <div id="ambientSwitch" class="switch">Ambient: OFF</div>
+  </div>
+  <div style="margin-top: 10px;">
+    <button 
+      onclick="window.open('https://www.youtube.com/watch?v=xvFZjo5PgG0&list=RDxvFZjo5PgG0&start_radio=1', '_blank')" 
+      style="background-color: cyan; color: black; border: none; padding: 10px 20px; font-size: 16px; border-radius: 6px; cursor: pointer;">
+      Our plan
+    </button>
+  </div>
+  <div style="margin-top: 20px; font-size: 16px; color: #aaa;">
+    The road to hell is paved with good intentions.
+    <br>Made with ❤️ from NITT
+    <br>
+    <a href="https://github.com" target="_blank" style="display: inline-block; margin-top: 10px;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" alt="GitHub Logo" style="width: 20px; height: 20px; vertical-align: middle;background: white; border-radius: 50%;"">
+    </a>
+    <a href="https://github.com/podalanga" target="_blank" style="color: #aaa;">podalanga</a> 
+    <a href="https://github.com/abdul36478" target="_blank" style="color: #aaa;">abdul</a> 
+    <a href="https://github.com/i-Pranay" target="_blank" style="color: #aaa;">pranay</a>
+  </div>
+
+
+  </div>
+  <script>
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const display = document.getElementById("colorDisplay");
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const wheelRadius = 120;
+    const ringInner = 130;
+    const ringOuter = 150;
+
+    let hue = 0, sat = 0, brightness = 1;
+    let colorKnobX = cx, colorKnobY = cy;
+    let brightnessKnobX = cx, brightnessKnobY = cy - ((ringInner + ringOuter) / 2);
+
+    function hsvToRgb(h, s, v) {
+      let f = (n, k = (n + h / 60) % 6) =>
+        v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
+      return [
+        Math.round(f(5) * 255),
+        Math.round(f(3) * 255),
+        Math.round(f(1) * 255),
+      ];
+    }
+
+    function draw() {
+      const image = ctx.createImageData(canvas.width, canvas.height);
+      const data = image.data;
+
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = (Math.atan2(dy, dx) * 180) / Math.PI + 180;
+
+          let idx = (y * canvas.width + x) * 4;
+
+          if (dist <= wheelRadius) {
+            const hue = angle;
+            const sat = dist / wheelRadius;
+            const [r, g, b] = hsvToRgb(hue, sat, brightness);
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+            data[idx + 3] = 255;
+          } else if (dist > ringInner && dist < ringOuter) {
+            const v = (angle % 360) / 360;
+            const gray = Math.round(v * 255);
+            data[idx] = gray;
+            data[idx + 1] = gray;
+            data[idx + 2] = gray;
+            data[idx + 3] = 255;
+          } else {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+
+      ctx.putImageData(image, 0, 0);
+      drawColorKnob();
+      drawBrightnessKnob();
+    }
+
+    function drawColorKnob() {
+      ctx.beginPath();
+      ctx.arc(colorKnobX, colorKnobY, 6, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function drawBrightnessKnob() {
+      ctx.beginPath();
+      ctx.arc(brightnessKnobX, brightnessKnobY, 5, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#00ff00";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function handleInput(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const angle = (Math.atan2(dy, dx) * 180) / Math.PI + 180;
+
+      if (dist <= wheelRadius) {
+        colorKnobX = x;
+        colorKnobY = y;
+        hue = angle;
+        sat = dist / wheelRadius;
+        const [r, g, b] = hsvToRgb(hue, sat, brightness);
+        display.textContent = `R: ${r}, G: ${g}, B: ${b}`;
+        // sendColor(r, g, b);
+        sendHSV(hue, sat, brightness);
+        draw();
+      } else if (dist > ringInner && dist < ringOuter) {
+        brightnessKnobX = x;
+        brightnessKnobY = y;
+        const bAngle = (Math.atan2(dy, dx) * 180) / Math.PI + 180;
+        brightness = (((bAngle % 360) + 360) % 360) / 360;
+        const [r, g, b] = hsvToRgb(hue, sat, brightness);
+        display.textContent = `R: ${r}, G: ${g}, B: ${b}`;
+        // sendColor(r, g, b);
+        sendHSV(hue, sat, brightness);
+        draw();
+      }
+    }
+
+    // function sendColor(r, g, b) {
+    //   fetch(`/setcolor?r=${r}&g=${g}&b=${b}`).catch(console.error);
+    // }
+    function sendHSV(h, s, v) {
+      fetch(`/sethsv?h=${h}&s=${s}&v=${v}`).catch(console.error);
+    }
+
+    function start(e) {
+      e.preventDefault();
+      handleInput(e);
+      window.addEventListener("mousemove", handleInput);
+      window.addEventListener("touchmove", handleInput, { passive: false });
+      window.addEventListener("mouseup", stop);
+      window.addEventListener("touchend", stop);
+    }
+
+    function stop() {
+      window.removeEventListener("mousemove", handleInput);
+      window.removeEventListener("touchmove", handleInput);
+      window.removeEventListener("mouseup", stop);
+      window.removeEventListener("touchend", stop);
+    }
+
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("touchstart", start, { passive: false });
+
+    function setupSwitch(id, endpoint) {
+      const el = document.getElementById(id);
+      let isOn = false;
+
+      el.addEventListener("click", () => {
+        isOn = !isOn;
+        el.classList.toggle("on", isOn);
+        el.textContent = `${el.textContent.split(":")[0]}: ${isOn ? "ON" : "OFF"}`;
+        fetch(`/${endpoint}?state=${isOn ? "on" : "off"}`).catch(console.error);
+      });
+    }
+
+    setupSwitch("ledSwitch", "led");
+    setupSwitch("ambientSwitch", "ambient");
+
+    draw();
+  </script>
+</body>
+</html>
