@@ -8,6 +8,7 @@ The board I had used was NodeMCU32s which was widely available than ESP32s origi
 ![](Attachments/Pasted%20image%2020250420012011.png)
 
 The peripherals are main switch, LDR and LED in this given circuit.
+
 ![](Attachments/Pasted%20image%2020250420012828.png)
 
 __NOTE: we didnt have a switch so we used jumpers as switches itself.__
