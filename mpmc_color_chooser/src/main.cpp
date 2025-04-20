@@ -4,8 +4,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ESPmDNS.h>
 
-const char* ssid = "Podalanga";
-const char* password = "meowmeow";
+const char* ssid = "your_wifi_name";
+const char* password = "your_wifi_password";
 
 AsyncWebServer server(80);
 
@@ -28,15 +28,13 @@ int ldr_val=0;
 
 int check_switch();
 void init();
-int check_switch();
 void HSV2RGB (float H, float S, float V, int &R, int &G, int &B);
-
 
 void setup() {
   Serial.begin(115200);
   // Init SPIFFS
   if(!SPIFFS.begin(true)) {
-    // Serial.println("SPIFFS failed");
+    Serial.println("SPIFFS failed");
     return;
   }
 
@@ -48,20 +46,20 @@ void setup() {
   }
   Serial.println("Connected: " + WiFi.localIP().toString());
   
-  if (!MDNS.begin("podalanga")) {
-    // Serial.println("Error starting mDNS");
+  if (!MDNS.begin(url_name)) {
+    Serial.println("Error starting mDNS");
     return;
   }
-  // Serial.printf("mDNS started. You can access the server at http://%s.local\n", url_name);
+  Serial.printf("mDNS started. You can access the server at http://%s.local\n", url_name);
 
 
   // Serve the HTML file
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     if (SPIFFS.exists("/index.html")) {
-      // Serial.println("Serving index.html from SPIFFS");
+      Serial.println("Serving index.html from SPIFFS");
       request->send(SPIFFS, "/index.html", "text/html");
     } else {
-      // Serial.println("index.html not found!");
+      Serial.println("index.html not found!");
       request->send(404, "text/plain", "File not found");
     }
   });
@@ -83,7 +81,7 @@ void setup() {
   server.on("/led", HTTP_GET, [](AsyncWebServerRequest *request){
     String state = request->getParam("state")->value();
     led_state = (state == "on") ? 1:0;
-    // Serial.printf("LED: %s\n", led_state ? "ON" : "OFF");
+    Serial.printf("LED: %s\n", led_state ? "ON" : "OFF");
     request->send(200, "text/plain", "LED toggled");
   });
 
@@ -91,25 +89,32 @@ void setup() {
   server.on("/ambient", HTTP_GET, [](AsyncWebServerRequest *request){
     String state = request->getParam("state")->value();
     ambient_state = (state == "on") ? 1:0;
-    // Serial.printf("Ambient: %s\n", ambient_state ? "ON" : "OFF");
+    Serial.printf("Ambient: %s\n", ambient_state ? "ON" : "OFF");
     request->send(200, "text/plain", "Ambient toggled");
   });
 
   server.begin();
   init();
-  // Serial.println("Server started");
+  Serial.println("Server started");
 }
 void loop() {
   ldr_val=analogRead(ldr);
+  Serial.println(ldr_val);
   if (check_switch() && led_state)
   {
-    if (ambient_state && ldr_val < 2700) 
+    if (ambient_state && ldr_val < 700) 
     {
-      v=(2700-ldr_val)/2700.0;
+      v=(700-ldr_val)/700.0;
       if (v>1){
         v=1;
       }
       HSV2RGB(h, s, v, r_val, g_val, b_val);
+    }
+    else if (ambient_state)
+    {
+      r_val=0;
+      g_val=0;
+      b_val=0;
     }
     else
     {
